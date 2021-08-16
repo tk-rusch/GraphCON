@@ -18,8 +18,8 @@ class AttODEblock(ODEblock):
     self.odefunc.edge_weight = edge_weight.to(device)
     self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
 
-    if opt['adjoint']:
-      from torchdiffeq import odeint_adjoint as odeint
+    if(opt['method']=='symplectic_euler' or opt['method']=='leapfrog'):
+      from odeint_geometric import odeint
     else:
       from torchdiffeq import odeint
     self.train_integrator = odeint
@@ -33,16 +33,18 @@ class AttODEblock(ODEblock):
     attention, values = self.multihead_att_layer(x, self.odefunc.edge_index)
     return attention
 
-  def forward(self, x):
+  def forward(self, x_all):
+    x = x_all[:,:self.opt['hidden_dim']]
+    y = x_all[:, self.opt['hidden_dim']:]
     t = self.t.type_as(x)
-    self.odefunc.attention_weights = self.get_attention_weights(x)
+    self.odefunc.attention_weights = self.get_attention_weights(y)
     self.reg_odefunc.odefunc.attention_weights = self.odefunc.attention_weights
     integrator = self.train_integrator if self.training else self.test_integrator
 
     reg_states = tuple(torch.zeros(x.size(0)).to(x) for i in range(self.nreg))
 
     func = self.reg_odefunc if self.training and self.nreg > 0 else self.odefunc
-    state = (x,) + reg_states if self.training and self.nreg > 0 else x
+    state = (x_all,) + reg_states if self.training and self.nreg > 0 else x_all
 
     if self.opt["adjoint"] and self.training:
       state_dt = integrator(

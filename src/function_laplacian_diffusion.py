@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 import torch_sparse
-
+import torch.nn.functional as F
 from base_classes import ODEFunc
 from utils import MaxNFEException
 
@@ -38,17 +38,19 @@ class LaplacianODEFunc(ODEFunc):
       ax = torch_sparse.spmm(self.edge_index, self.edge_weight, x.shape[0], x.shape[0], x)
     return ax
 
-  def forward(self, t, x):  # the t param is needed by the ODE solver.
+  def forward(self, t, x_full):  # the t param is needed by the ODE solver.
+    x = x_full[:,:self.opt['hidden_dim']]
+    y = x_full[:,self.opt['hidden_dim']:]
     if self.nfe > self.opt["max_nfe"]:
       raise MaxNFEException
     self.nfe += 1
-    ax = self.sparse_multiply(x)
+    ay = self.sparse_multiply(y)
     if not self.opt['no_alpha_sigmoid']:
       alpha = torch.sigmoid(self.alpha_train)
     else:
       alpha = self.alpha_train
-
-    f = alpha * (ax - x)
+    f = (ay - x - y)
     if self.opt['add_source']:
-      f = f + self.beta_train * self.x0
+      f = (1.-F.sigmoid(self.beta_train))*f + F.sigmoid(self.beta_train) * self.x0[:,self.opt['hidden_dim']:]
+    f = torch.cat([f,(1.-F.sigmoid(self.beta_train2))*alpha*x + F.sigmoid(self.beta_train2) * self.x0[:,:self.opt['hidden_dim']]],dim=1)
     return f

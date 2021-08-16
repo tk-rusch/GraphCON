@@ -9,6 +9,7 @@ import time
 from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
 from best_params import best_params_dict
+from good_params_waveGNN import good_params_dict
 
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -139,7 +140,7 @@ def test_OGB(model, data, opt):
 
 
 def main(cmd_opt):
-  best_opt = best_params_dict[cmd_opt['dataset']]
+  best_opt = good_params_dict[cmd_opt['dataset']]
   opt = {**cmd_opt, **best_opt}
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -187,6 +188,8 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--use_cora_defaults', action='store_true',
                       help='Whether to run with best params for cora. Overrides the choice of dataset')
+
+  parser.add_argument('--id', type=int)
   # data args
   parser.add_argument('--dataset', type=str, default='Cora',
                       help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS, ogbn-arxiv')
@@ -240,7 +243,7 @@ if __name__ == '__main__':
   parser.add_argument("--tol_scale_adjoint", type=float, default=1.0,
                       help="multiplier for adjoint_atol and adjoint_rtol")
   parser.add_argument('--ode_blocks', type=int, default=1, help='number of ode blocks to run')
-  parser.add_argument("--max_nfe", type=int, default=1000,
+  parser.add_argument("--max_nfe", type=int, default=10000000,
                       help="Maximum number of function evaluations in an epoch. Stiff ODEs will hang if not set.")
   parser.add_argument("--no_early", action="store_true",
                       help="Whether or not to use early stopping of the ODE integrator when testing.")

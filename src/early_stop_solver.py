@@ -2,9 +2,12 @@ import torchdiffeq
 from torchdiffeq._impl.dopri5 import _DORMAND_PRINCE_SHAMPINE_TABLEAU, DPS_C_MID
 from torchdiffeq._impl.solvers import FixedGridODESolver
 import torch
+import abc
+from geometric_solvers import GeomtricFixedGridODESolver
 from torchdiffeq._impl.misc import _check_inputs, _flat_to_shape
 import torch.nn.functional as F
 import copy
+from geometric_integrators import SymplecticEuler_step_func, Leapfrog_step_func
 
 from torchdiffeq._impl.interp import _interp_evaluate
 from torchdiffeq._impl.rk_common import RKAdaptiveStepsizeODESolver, rk4_alt_step_func
@@ -216,9 +219,195 @@ class EarlyStopRK4(FixedGridODESolver):
       self.data = data
 
 
+class EarlyStopSympEuler(GeomtricFixedGridODESolver):
+  order = 1
+
+  def __init__(self, func, y0, rtol, atol, opt, eps=0, **kwargs):
+    super(EarlyStopSympEuler, self).__init__(func, y0, step_size=opt['step_size'])
+    self.eps = torch.as_tensor(eps, dtype=self.dtype, device=self.device)
+    self.lf = torch.nn.CrossEntropyLoss()
+    self.m2 = None
+    self.data = None
+    self.best_val = 0
+    self.best_test = 0
+    self.best_time = 0
+    self.ode_test = self.test_OGB if opt['dataset'] == 'ogbn-arxiv' else self.test
+    self.dataset = opt['dataset']
+    if opt['dataset'] == 'ogbn-arxiv':
+      self.lf = torch.nn.functional.nll_loss
+      self.evaluator = Evaluator(name=opt['dataset'])
+
+  def _step_func(self, func, t0, dt, t1, y0):
+    return SymplecticEuler_step_func(func, t0, dt, t1, y0)
+
+  def set_accs(self, train, val, test, time):
+    self.best_train = train
+    self.best_val = val
+    self.best_test = test
+    self.best_time = time.item()
+
+  def integrate(self, t):
+    time_grid = self.grid_constructor(self.func, self.y0, t)
+    assert time_grid[0] == t[0] and time_grid[-1] == t[-1]
+
+    solution = torch.empty(len(t), *self.y0.shape, dtype=self.y0.dtype, device=self.y0.device)
+    solution[0] = self.y0
+
+    j = 1
+    y0 = self.y0
+    for t0, t1 in zip(time_grid[:-1], time_grid[1:]):
+      dt = t1 - t0
+      y1 = self._step_func(self.func, t0, dt, t1, y0)
+      train_acc, val_acc, test_acc = self.evaluate(y1, t0, t1)
+      if val_acc > self.best_val:
+        self.set_accs(train_acc, val_acc, test_acc, t0)
+
+      while j < len(t) and t1 >= t[j]:
+        solution[j] = self._linear_interp(t0, t1, y0, y1, t[j])
+        j += 1
+      y0 = y1
+
+    return t1, solution
+
+  @torch.no_grad()
+  def test(self, logits):
+    accs = []
+    for _, mask in self.data('train_mask', 'val_mask', 'test_mask'):
+      pred = logits[mask].max(1)[1]
+      acc = pred.eq(self.data.y[mask]).sum().item() / mask.sum().item()
+      accs.append(acc)
+    return accs
+
+  @torch.no_grad()
+  def test_OGB(self, logits):
+    evaluator = self.evaluator
+    data = self.data
+    y_pred = logits.argmax(dim=-1, keepdim=True)
+    train_acc, valid_acc, test_acc = run_evaluator(evaluator, data, y_pred)
+    return [train_acc, valid_acc, test_acc]
+
+  @torch.no_grad()
+  def evaluate(self, z, t0, t1):
+    # Activation.
+    if not self.m2.in_features == z.shape[1]:  # system has been augmented
+      z = torch.split(z, self.m2.in_features, dim=1)[0]
+    z = F.relu(z)
+    z = self.m2(z)
+    if self.dataset == 'ogbn-arxiv':
+      z = z.log_softmax(dim=-1)
+      loss = self.lf(z[self.data.train_mask], self.data.y.squeeze()[self.data.train_mask])
+    else:
+      loss = self.lf(z[self.data.train_mask], self.data.y[self.data.train_mask])
+    train_acc, val_acc, test_acc = self.ode_test(z)
+    log = 'ODE eval t0 {:.3f}, t1 {:.3f} Loss: {:.4f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+    # print(log.format(t0, t1, loss, train_acc, val_acc, tmp_test_acc))
+    return train_acc, val_acc, test_acc
+
+  def set_m2(self, m2):
+    self.m2 = copy.deepcopy(m2)
+
+  def set_data(self, data):
+    if self.data is None:
+      self.data = data
+
+
+class EarlyStopLepfrog(GeomtricFixedGridODESolver):
+  order = 2
+
+  def __init__(self, func, y0, rtol, atol, opt, eps=0, **kwargs):
+    super(EarlyStopLepfrog, self).__init__(func, y0, step_size=opt['step_size'])
+    self.eps = torch.as_tensor(eps, dtype=self.dtype, device=self.device)
+    self.lf = torch.nn.CrossEntropyLoss()
+    self.m2 = None
+    self.data = None
+    self.best_val = 0
+    self.best_test = 0
+    self.best_time = 0
+    self.ode_test = self.test_OGB if opt['dataset'] == 'ogbn-arxiv' else self.test
+    self.dataset = opt['dataset']
+    if opt['dataset'] == 'ogbn-arxiv':
+      self.lf = torch.nn.functional.nll_loss
+      self.evaluator = Evaluator(name=opt['dataset'])
+
+  def _step_func(self, func, t0, dt, t1, y0):
+    return Leapfrog_step_func(func, t0, dt, t1, y0)
+
+  def set_accs(self, train, val, test, time):
+    self.best_train = train
+    self.best_val = val
+    self.best_test = test
+    self.best_time = time.item()
+
+  def integrate(self, t):
+    time_grid = self.grid_constructor(self.func, self.y0, t)
+    assert time_grid[0] == t[0] and time_grid[-1] == t[-1]
+
+    solution = torch.empty(len(t), *self.y0.shape, dtype=self.y0.dtype, device=self.y0.device)
+    solution[0] = self.y0
+
+    j = 1
+    y0 = self.y0
+    for t0, t1 in zip(time_grid[:-1], time_grid[1:]):
+      dt = t1 - t0
+      y1 = self._step_func(self.func, t0, dt, t1, y0)
+      train_acc, val_acc, test_acc = self.evaluate(y1, t0, t1)
+      if val_acc > self.best_val:
+        self.set_accs(train_acc, val_acc, test_acc, t0)
+
+      while j < len(t) and t1 >= t[j]:
+        solution[j] = self._linear_interp(t0, t1, y0, y1, t[j])
+        j += 1
+      y0 = y1
+
+    return t1, solution
+
+  @torch.no_grad()
+  def test(self, logits):
+    accs = []
+    for _, mask in self.data('train_mask', 'val_mask', 'test_mask'):
+      pred = logits[mask].max(1)[1]
+      acc = pred.eq(self.data.y[mask]).sum().item() / mask.sum().item()
+      accs.append(acc)
+    return accs
+
+  @torch.no_grad()
+  def test_OGB(self, logits):
+    evaluator = self.evaluator
+    data = self.data
+    y_pred = logits.argmax(dim=-1, keepdim=True)
+    train_acc, valid_acc, test_acc = run_evaluator(evaluator, data, y_pred)
+    return [train_acc, valid_acc, test_acc]
+
+  @torch.no_grad()
+  def evaluate(self, z, t0, t1):
+    # Activation.
+    if not self.m2.in_features == z.shape[1]:  # system has been augmented
+      z = torch.split(z, self.m2.in_features, dim=1)[0]
+    z = F.relu(z)
+    z = self.m2(z)
+    if self.dataset == 'ogbn-arxiv':
+      z = z.log_softmax(dim=-1)
+      loss = self.lf(z[self.data.train_mask], self.data.y.squeeze()[self.data.train_mask])
+    else:
+      loss = self.lf(z[self.data.train_mask], self.data.y[self.data.train_mask])
+    train_acc, val_acc, test_acc = self.ode_test(z)
+    log = 'ODE eval t0 {:.3f}, t1 {:.3f} Loss: {:.4f}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}'
+    # print(log.format(t0, t1, loss, train_acc, val_acc, tmp_test_acc))
+    return train_acc, val_acc, test_acc
+
+  def set_m2(self, m2):
+    self.m2 = copy.deepcopy(m2)
+
+  def set_data(self, data):
+    if self.data is None:
+      self.data = data
+
+
 SOLVERS = {
   'dopri5': EarlyStopDopri5,
-  'rk4': EarlyStopRK4
+  'rk4': EarlyStopRK4,
+  'symplectic_euler': EarlyStopSympEuler,
+  'leapfrog': EarlyStopLepfrog
 }
 
 
@@ -274,7 +463,7 @@ class EarlyStopInt(torch.nn.Module):
             an invalid dtype.
     """
     method = self.opt['method']
-    assert method in ['rk4', 'dopri5'], "Only dopri5 and rk4 implemented with early stopping"
+    assert method in ['rk4', 'dopri5','symplectic_euler', 'leapfrog'], "Only dopri5, rk4, symplectic_euler and leapfrog implemented with early stopping"
 
     ver = torchdiffeq.__version__[0] + torchdiffeq.__version__[2] + torchdiffeq.__version__[4]
     if int(ver) >= 22: #'0.2.2'

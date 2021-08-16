@@ -84,8 +84,10 @@ class ODEFunc(MessagePassing):
     self.edge_index = None
     self.edge_weight = None
     self.attention_weights = None
-    self.alpha_train = nn.Parameter(torch.tensor(0.0))
+    self.attention_weights_2 = None
+    self.alpha_train = nn.Parameter(torch.tensor(0.0))#nn.Parameter(torch.zeros(opt['hidden_dim']))
     self.beta_train = nn.Parameter(torch.tensor(0.0))
+    self.beta_train2 = nn.Parameter(torch.tensor(0.0))
     self.x0 = None
     self.nfe = 0
     self.alpha_sc = nn.Parameter(torch.ones(1))

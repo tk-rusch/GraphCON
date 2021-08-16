@@ -61,9 +61,9 @@ class GNNEarly(BaseGNN):
       c_aux = torch.zeros(x.shape).to(self.device)
       x = torch.cat([x, c_aux], dim=1)
 
+    x = torch.cat([x, x], dim=-1)
     self.odeblock.set_x0(x)
     self.set_solver_m2()
-
     if self.training  and self.odeblock.nreg > 0:
       z, self.reg_states  = self.odeblock(x)
     else:
@@ -71,6 +71,8 @@ class GNNEarly(BaseGNN):
       
     if self.opt['augment']:
       z = torch.split(z, x.shape[1] // 2, dim=1)[0]
+
+    z = z[:,self.opt['hidden_dim']:]
 
     # Activation.
     z = F.relu(z)
