@@ -6,6 +6,7 @@ from base_classes import ODEFunc
 from utils import MaxNFEException
 from torch_geometric.nn.conv import GCNConv
 
+
 # Define the ODE function.
 # Input:
 # --- t: A tensor with shape [], meaning the current time.
@@ -40,8 +41,8 @@ class LaplacianODEFunc(ODEFunc):
     return ax
 
   def forward(self, t, x_full):  # the t param is needed by the ODE solver.
-    x = x_full[:,:self.opt['hidden_dim']]
-    y = x_full[:,self.opt['hidden_dim']:]
+    x = x_full[:, :self.opt['hidden_dim']]
+    y = x_full[:, self.opt['hidden_dim']:]
     if self.nfe > self.opt["max_nfe"]:
       raise MaxNFEException
     self.nfe += 1
@@ -53,6 +54,7 @@ class LaplacianODEFunc(ODEFunc):
     f = self.conv(y) - x - y
     # f = (ay - x - y)
     if self.opt['add_source']:
-      f = (1.-F.sigmoid(self.beta_train))*f + F.sigmoid(self.beta_train) * self.x0[:,self.opt['hidden_dim']:]
-    f = torch.cat([f,(1.-F.sigmoid(self.beta_train2))*alpha*x + F.sigmoid(self.beta_train2) * self.x0[:,:self.opt['hidden_dim']]],dim=1)
+      f = (1. - F.sigmoid(self.beta_train)) * f + F.sigmoid(self.beta_train) * self.x0[:, self.opt['hidden_dim']:]
+    f = torch.cat([f, (1. - F.sigmoid(self.beta_train2)) * alpha * x + F.sigmoid(self.beta_train2) *
+                   self.x0[:, :self.opt['hidden_dim']]], dim=1)
     return f
