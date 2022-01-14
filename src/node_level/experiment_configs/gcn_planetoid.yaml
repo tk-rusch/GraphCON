@@ -1,0 +1,38 @@
+program: run_GNN.py
+method: random
+parameters:
+  method:
+    values: [dopri5]
+  time:
+    distribution: uniform
+    min: 0
+    max: 10
+  hidden_dim:
+    values: [8, 16, 32, 64]
+  attention_dim:
+    values: [8, 16, 32, 64]
+  input_dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  lr:
+    distribution: uniform
+    min: 0.01
+    max: 0.1
+  decay:
+    distribution: uniform
+    min: 0.001
+    max: 0.1
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --function
+  - function_gcn
