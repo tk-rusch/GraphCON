@@ -1,5 +1,5 @@
 """
-Currently the adjoint method is not implemented and so the params for Pubmed are not correct as I have changed
+Currently the adjoint method is not implemented and so the params for Pubmed  are not correct as I have changed
 adjoint to False, but kept all other hyperparameter settings.
 """
 good_params_dict = {

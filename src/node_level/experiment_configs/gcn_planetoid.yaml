@@ -2,15 +2,18 @@ program: run_GNN.py
 method: random
 parameters:
   method:
-    distribution: constant
-    value: dopri5
+    distribution: categorical
+    values: [ 'dopri5', 'euler', 'rk4' ]
+  step_size:
+    distribution: categorical
+    values: [0.25, 0.5, 1]
   function:
     distribution: constant
     value: gcn
   time:
     distribution: uniform
-    min: 0
-    max: 10
+    min: 4
+    max: 15
   dataset:
     distribution: categorical
     values: [ 'Cora', 'Citeseer', 'Pubmed' ]
