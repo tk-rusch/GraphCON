@@ -167,3 +167,14 @@ def set_train_val_test_split(
   data.test_mask = get_mask(test_idx)
 
   return data
+
+
+if __name__ == '__main__':
+  # example for heterophilic datasets
+  from heterophilic import get_fixed_splits
+  opt = {'dataset': 'Cora', 'device': 'cpu'}
+  dataset = get_dataset(opt)
+  for fold in range(10):
+    data = dataset[0]
+    data = get_fixed_splits(data, opt['dataset'], fold)
+    data = data.to(opt['device'])
