@@ -51,7 +51,7 @@ class GCNFunc(ODEFunc):
       alpha = torch.sigmoid(self.alpha_train)
     else:
       alpha = self.alpha_train
-    f = self.conv(y) - x - y
+    f = self.conv(y, self.edge_index) - x - y
     # f = (ay - x - y)
     if self.opt['add_source']:
       f = (1. - F.sigmoid(self.beta_train)) * f + F.sigmoid(self.beta_train) * self.x0[:, self.opt['hidden_dim']:]

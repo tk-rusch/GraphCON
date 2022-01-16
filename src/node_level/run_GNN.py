@@ -146,8 +146,6 @@ def test_OGB(model, data, opt):
 
 
 def merge_cmd_args(cmd_opt, opt):
-  if cmd_opt['beltrami']:
-    opt['beltrami'] = True
   if cmd_opt['function'] is not None:
     opt['function'] = cmd_opt['function']
   if cmd_opt['block'] is not None:
