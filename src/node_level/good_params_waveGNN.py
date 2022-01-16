@@ -1,3 +1,7 @@
+"""
+Currently the adjoint method is not implemented and so the params for Pubmed are not correct as I have changed
+adjoint to False, but kept all other hyperparameter settings.
+"""
 good_params_dict = {
   'Cora': {'M_nodes': 64, 'adaptive': False, 'add_source': True, 'adjoint': False, 'adjoint_method': 'adaptive_heun',
            'adjoint_step_size': 1, 'alpha': 1.0, 'alpha_dim': 'sc', 'att_samp_pct': 1, 'attention_dim': 128,
@@ -45,7 +49,7 @@ good_params_dict = {
                'tol_scale': 2.9010446330432815, 'tol_scale_adjoint': 1.0, 'total_deriv': None,
                'use_cora_defaults': False, 'use_flux': False, 'use_labels': False, 'use_lcc': True,
                'use_mlp': False},
-  'Pubmed': {'M_nodes': 64, 'adaptive': False, 'add_source': True, 'adjoint': True,
+  'Pubmed': {'M_nodes': 64, 'adaptive': False, 'add_source': True, 'adjoint': False,
              'adjoint_method': 'adaptive_heun', 'adjoint_step_size': 1, 'alpha': 1.0,
              'alpha_dim': 'sc', 'att_samp_pct': 1, 'attention_dim': 16, 'attention_norm_idx': 0,
              'attention_rewiring': False, 'attention_type': 'cosine_sim', 'augment': False,
