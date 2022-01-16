@@ -2,7 +2,11 @@ program: run_GNN.py
 method: random
 parameters:
   method:
-    values: [ dopri5 ]
+    distribution: constant
+    value: dopri5
+  function:
+    distribution: constant
+    value: gcn
   time:
     distribution: uniform
     min: 0
