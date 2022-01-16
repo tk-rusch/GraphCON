@@ -1,4 +1,5 @@
 import argparse
+import os
 import numpy as np
 import torch
 from torch_geometric.nn import GCNConv, ChebConv  # noqa
@@ -10,6 +11,7 @@ from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
 from best_params import best_params_dict
 from good_params_waveGNN import good_params_dict
+import wandb
 
 
 def get_optimizer(name, parameters, lr, weight_decay=0):
@@ -68,6 +70,10 @@ def train(model, optimizer, data):
   else:
     lf = torch.nn.CrossEntropyLoss()
     loss = lf(out[data.train_mask], data.y.squeeze()[data.train_mask])
+
+  if model.opt['wandb_watch_grad']:  # Tell wandb to watch what the model gets up to: gradients, weights, and more!
+    wandb.watch(model, lf, log="all", log_freq=10)
+
   if model.odeblock.nreg > 0:  # add regularisation - slower for small data, but faster and better performance for large data
     reg_states = tuple(torch.mean(rs) for rs in model.reg_states)
     regularization_coeffs = model.regularization_coeffs
@@ -139,10 +145,52 @@ def test_OGB(model, data, opt):
   return train_acc, valid_acc, test_acc
 
 
+def merge_cmd_args(cmd_opt, opt):
+  if cmd_opt['function'] is not None:
+    opt['function'] = cmd_opt['function']
+  if cmd_opt['block'] is not None:
+    opt['block'] = cmd_opt['block']
+  if cmd_opt['self_loop_weight'] is not None:
+    opt['self_loop_weight'] = cmd_opt['self_loop_weight']
+  if cmd_opt['method'] is not None:
+    opt['method'] = cmd_opt['method']
+  if cmd_opt['step_size'] != 1:
+    opt['step_size'] = cmd_opt['step_size']
+  if cmd_opt['time'] != 1:
+    opt['time'] = cmd_opt['time']
+  if cmd_opt['epoch'] != 100:
+    opt['epoch'] = cmd_opt['epoch']
+
+
 def main(cmd_opt):
   best_opt = good_params_dict[cmd_opt['dataset']]
   opt = {**cmd_opt, **best_opt}
+  merge_cmd_args(cmd_opt, opt)
+
   dataset = get_dataset(opt, '../data', opt['not_lcc'])
+
+  if opt['wandb']:
+    if opt['use_wandb_offline']:
+      os.environ["WANDB_MODE"] = "offline"
+    else:
+      os.environ["WANDB_MODE"] = "run"
+  else:
+    os.environ["WANDB_MODE"] = "disabled"  # sets as NOOP, saves keep writing: if opt['wandb']:
+
+  if 'wandb_run_name' in opt.keys():
+    wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
+                           name=opt['wandb_run_name'], reinit=True, config=opt)
+  else:
+    wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
+                           reinit=True, config=opt)
+
+  wandb.define_metric("epoch_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
+  if opt['wandb_track_grad_flow']:
+    wandb.define_metric("grad_flow_step")  # Customize axes - https://docs.wandb.ai/guides/track/log
+    wandb.define_metric("gf_e*", step_metric="grad_flow_step")  # grad_flow_epoch*
+
+  opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
+
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
   model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
   print(opt)
@@ -175,12 +223,21 @@ def main(cmd_opt):
       train_acc = model.odeblock.test_integrator.solver.best_train
       best_time = model.odeblock.test_integrator.solver.best_time
 
+    if ((epoch) % opt['wandb_log_freq']) == 0:
+      wandb.log({"loss": loss,
+                 "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+                 "epoch_step": epoch})  # , step=epoch) wandb: WARNING Step must only increase in log calls
+
     log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}, Best time: {:.4f}'
 
-    print(log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc, best_time))
-  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d} and best time {:03f}'.format(val_acc, test_acc,
-                                                                                                     best_epoch,
-                                                                                                     best_time))
+    print(
+      log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc,
+                 best_time))
+  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d} and best time {:03f}'.format(val_acc,
+                                                                                                       test_acc,
+                                                                                                       best_epoch,
+                                                                                                       best_time))
+  wandb_run.finish()
   return train_acc, val_acc, test_acc
 
 
@@ -195,7 +252,7 @@ if __name__ == '__main__':
                       help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS, ogbn-arxiv')
   parser.add_argument('--data_norm', type=str, default='rw',
                       help='rw for random walk, gcn for symmetric gcn norm')
-  parser.add_argument('--self_loop_weight', type=float, default=1.0, help='Weight of self-loops.')
+  parser.add_argument('--self_loop_weight', type=float, help='Weight of self-loops.')
   parser.add_argument('--use_labels', dest='use_labels', action='store_true', help='Also diffuse labels')
   parser.add_argument('--label_rate', type=float, default=0.5,
                       help='% of training labels to use when --use_labels is set.')
@@ -217,8 +274,8 @@ if __name__ == '__main__':
   parser.add_argument('--no_alpha_sigmoid', dest='no_alpha_sigmoid', action='store_true',
                       help='apply sigmoid before multiplying by alpha')
   parser.add_argument('--beta_dim', type=str, default='sc', help='choose either scalar (sc) or vector (vc) beta')
-  parser.add_argument('--block', type=str, default='constant', help='constant, mixed, attention, hard_attention, SDE')
-  parser.add_argument('--function', type=str, default='laplacian', help='laplacian, transformer, dorsey, GAT, SDE')
+  parser.add_argument('--block', type=str, help='constant, mixed, attention, hard_attention, SDE')
+  parser.add_argument('--function', type=str, help='laplacian, transformer, dorsey, GAT, SDE')
   parser.add_argument('--use_mlp', dest='use_mlp', action='store_true',
                       help='Add a fully connected layer to the encoder.')
   parser.add_argument('--add_source', dest='add_source', action='store_true',
@@ -228,7 +285,7 @@ if __name__ == '__main__':
   parser.add_argument('--time', type=float, default=1.0, help='End time of ODE integrator.')
   parser.add_argument('--augment', action='store_true',
                       help='double the length of the feature vector by appending zeros to stabilist ODE learning')
-  parser.add_argument('--method', type=str, default='dopri5',
+  parser.add_argument('--method', type=str,
                       help="set the numerical solver: dopri5, euler, rk4, midpoint")
   parser.add_argument('--step_size', type=float, default=1,
                       help='fixed step size when using fixed step solvers e.g. rk4')
@@ -289,6 +346,27 @@ if __name__ == '__main__':
                       help='incorporate the feature grad in attention based edge dropout')
   parser.add_argument("--exact", action="store_true",
                       help="for small datasets can do exact diffusion. If dataset is too big for matrix inversion then you can't")
+
+  # wandb logging and tuning
+  parser.add_argument('--wandb', action='store_true', help="flag if logging to wandb")
+  parser.add_argument('-wandb_offline', dest='use_wandb_offline',
+                      action='store_true')  # https://docs.wandb.ai/guides/technical-faq
+
+  parser.add_argument('--wandb_sweep', action='store_true',
+                      help="flag if sweeping")  # if not it picks up params in greed_params
+  parser.add_argument('--wandb_watch_grad', action='store_true', help='allows gradient tracking in train function')
+  parser.add_argument('--wandb_track_grad_flow', action='store_true')
+
+  parser.add_argument('--wandb_entity', default="graph_neural_diffusion", type=str,
+                      help="jrowbottomwnb, ger__man")  # not used as default set in web browser settings
+  parser.add_argument('--wandb_project', default="greed", type=str)
+  parser.add_argument('--wandb_group', default="testing", type=str, help="testing,tuning,eval")
+  parser.add_argument('--wandb_run_name', default=None, type=str)
+  parser.add_argument('--wandb_output_dir', default='./wandb_output',
+                      help='folder to output results, images and model checkpoints')
+  parser.add_argument('--wandb_log_freq', type=int, default=1, help='Frequency to log metrics.')
+  parser.add_argument('--wandb_epoch_list', nargs='+', default=[0, 1, 2, 4, 8, 16],
+                      help='list of epochs to log gradient flow')
 
   args = parser.parse_args()
 
