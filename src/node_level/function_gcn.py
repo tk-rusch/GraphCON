@@ -13,11 +13,11 @@ from torch_geometric.nn.conv import GCNConv
 # --- x: A tensor with shape [#batches, dims], meaning the value of x at t.
 # Output:
 # --- dx/dt: A tensor with shape [#batches, dims], meaning the derivative of x at t.
-class LaplacianODEFunc(ODEFunc):
+class GCNFunc(ODEFunc):
 
   # currently requires in_features = out_features
   def __init__(self, in_features, out_features, opt, data, device):
-    super(LaplacianODEFunc, self).__init__(opt, data, device)
+    super(GCNFunc, self).__init__(opt, data, device)
 
     self.in_features = in_features
     self.out_features = out_features
@@ -46,7 +46,7 @@ class LaplacianODEFunc(ODEFunc):
     if self.nfe > self.opt["max_nfe"]:
       raise MaxNFEException
     self.nfe += 1
-    ay = self.sparse_multiply(y)
+    # ay = self.sparse_multiply(y)
     if not self.opt['no_alpha_sigmoid']:
       alpha = torch.sigmoid(self.alpha_train)
     else:
