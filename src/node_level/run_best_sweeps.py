@@ -75,7 +75,7 @@ def main(opt, data_dir="../data"):
     # with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
     #   path = os.path.join(checkpoint_dir, "checkpoint")
     #   torch.save((model.state_dict(), optimizer.state_dict()), path)
-    tune.report(loss=loss, accuracy=val_acc, test_acc=test_acc, train_acc=train_acc, best_time=best_time,
+    tune.report(loss=loss, val_acc=val_acc, test_acc=test_acc, train_acc=train_acc, best_time=best_time,
                 best_epoch=best_epoch,
                 forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
     res_dict = {"loss": loss,
@@ -139,7 +139,7 @@ def run_best(opt):
       progress_reporter=reporter,
       raise_on_failed_trial=False)
 
-    print(f'results dataframe: {result.dataframe()}')
+    # print(f'results dataframe: {result.dataframe()}')
     df = result.dataframe(metric='test_acc', mode="max").sort_values('test_acc', ascending=False)
     try:
       df.to_csv('../ray_results/{}_{}.csv'.format(run, time.strftime("%Y%m%d-%H%M%S")))
