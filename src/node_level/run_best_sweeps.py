@@ -30,8 +30,8 @@ def main(opt, data_dir="../data"):
       num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
   model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
-  if torch.cuda.device_count() > 1:
-    model = torch.nn.DataParallel(model)
+  # if torch.cuda.device_count() > 1:
+  #   model = torch.nn.DataParallel(model)
   model, data = model.to(device), dataset.data.to(device)
   parameters = [p for p in model.parameters() if p.requires_grad]
   optimizer = get_optimizer(opt["optimizer"], parameters, lr=opt["lr"], weight_decay=opt["decay"])
