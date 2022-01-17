@@ -24,7 +24,7 @@ from utils import get_sem, mean_confidence_interval
 
 
 def main(opt, data_dir="../data"):
-  #todo see if I can initialise wandb runs inside of ray processes
+  # todo see if I can initialise wandb runs inside of ray processes
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
@@ -79,8 +79,8 @@ def main(opt, data_dir="../data"):
                 best_epoch=best_epoch,
                 forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
     res_dict = {"loss": loss,
-               "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc, "best_time": best_time,
-               "best_epoch": best_epoch, "epoch_step": epoch}
+                "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc, "best_time": best_time,
+                "best_epoch": best_epoch, "epoch_step": epoch}
     # wandb.log(res_dict)
     print(res_dict)
 
@@ -149,9 +149,12 @@ def run_best(opt):
     print(df[['val_acc', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
 
     test_accs = df['test_acc'].values
+    val_accs = df['val_acc'].values
+    train_accs = df['train_acc'].values
     print("test accuracy {}".format(test_accs))
     log = "mean test {:04f}, test std {:04f}, test sem {:04f}, test 95% conf {:04f}"
-    log_dic = {'mean_test': test_accs.mean(), 'test_std': np.std(test_accs), 'test_sem': get_sem(test_accs),
+    log_dic = {'test_acc': test_accs.mean(), 'val_acc': val_accs.mean(), 'train_acc': train_accs.mean(),
+               'test_std': np.std(test_accs), 'test_sem': get_sem(test_accs),
                'test_95_conf': mean_confidence_interval(test_accs)}
     wandb.log(log_dic)
     print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs), mean_confidence_interval(test_accs)))
