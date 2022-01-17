@@ -10,12 +10,10 @@ import torch
 import numpy as np
 from ray import tune
 from functools import partial
-import os, time
+import time
 from ray.tune import CLIReporter
 
 from good_params_waveGNN import good_params_dict
-# from greed_params import default_params, not_sweep_args, greed_run_params
-# from run_GNN import main
 from data import get_dataset, set_train_val_test_split
 from GNN import GNN
 from GNN_early import GNNEarly
@@ -35,27 +33,15 @@ def main(opt, data_dir="../data"):
       dataset.data,
       num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
 
-  print("Running with parameters {}".format(opt))
-
   model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
-  # if torch.cuda.device_count() > 1:
-  #   model = torch.nn.DataParallel(model)
   model, data = model.to(device), dataset.data.to(device)
   parameters = [p for p in model.parameters() if p.requires_grad]
   optimizer = get_optimizer(opt["optimizer"], parameters, lr=opt["lr"], weight_decay=opt["decay"])
-
-  # if checkpoint_dir:
-  #   checkpoint = os.path.join(checkpoint_dir, "checkpoint")
-  #   model_state, optimizer_state = torch.load(checkpoint)
-  #   model.load_state_dict(model_state)
-  #   optimizer.load_state_dict(optimizer_state)
 
   this_test = test
   best_time = best_epoch = train_acc = val_acc = test_acc = 0
   for epoch in range(1, opt["epoch"]):
     loss = train(model, optimizer, data)
-    # need next line as it sets the attributes in the solver
-
     if opt["no_early"]:
       tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
       best_time = opt['time']
@@ -72,16 +58,12 @@ def main(opt, data_dir="../data"):
       test_acc = model.odeblock.test_integrator.solver.best_test
       train_acc = model.odeblock.test_integrator.solver.best_train
       best_time = model.odeblock.test_integrator.solver.best_time
-    # with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
-    #   path = os.path.join(checkpoint_dir, "checkpoint")
-    #   torch.save((model.state_dict(), optimizer.state_dict()), path)
     tune.report(loss=loss, val_acc=val_acc, test_acc=test_acc, train_acc=train_acc, best_time=best_time,
                 best_epoch=best_epoch,
                 forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
     res_dict = {"loss": loss,
                 "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc, "best_time": best_time,
                 "best_epoch": best_epoch, "epoch_step": epoch}
-    # wandb.log(res_dict)
     print(res_dict)
 
 
@@ -98,10 +80,6 @@ def run_best(opt):
 
   wandb.define_metric("epoch_step")
   for run in opt['runs']:
-    # default_params_dict = default_params()
-    # greed_run_dict = greed_run_params(default_params_dict)
-    # not_sweep_dict = not_sweep_args(greed_run_dict, project_name, group_name)
-
     yaml_path = f"./wandb/sweep-{opt['sweep']}/config-{run}.yaml"
     with open(yaml_path) as f:
       yaml_opt = yaml.load(f, Loader=yaml.FullLoader)
@@ -139,7 +117,6 @@ def run_best(opt):
       progress_reporter=reporter,
       raise_on_failed_trial=False)
 
-    # print(f'results dataframe: {result.dataframe()}')
     df = result.dataframe(metric='test_acc', mode="max").sort_values('test_acc', ascending=False)
     try:
       df.to_csv('../ray_results/{}_{}.csv'.format(run, time.strftime("%Y%m%d-%H%M%S")))
@@ -159,8 +136,6 @@ def run_best(opt):
     wandb.log(log_dic)
     print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs), mean_confidence_interval(test_accs)))
 
-    # for i in range(num_runs):
-    # main(opt)
   wandb_run.finish()
 
 
@@ -171,8 +146,6 @@ if __name__ == '__main__':
   parser.add_argument('--runs', type=str, nargs='+', default=None, help='the run IDs', required=True)
   parser.add_argument('--reps', type=int, default=1, help='the number of random weight initialisations to use')
   parser.add_argument('--name', type=str, default=None)
-  # parser.add_argument('--function', type=str, default=None)
-  # parser.add_argument('--block', type=str, default=None)
   parser.add_argument('--gpus', type=float, default=0, help='number of gpus per trial. Can be fractional')
   parser.add_argument('--cpus', type=float, default=1, help='number of cpus per trial. Can be fractional')
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random slpits >= 0. 0 for planetoid split")
@@ -189,10 +162,3 @@ if __name__ == '__main__':
 
   opt = vars(args)
   run_best(opt)
-
-# if __name__ == "__main__":
-#   sweep = 'ebq1b5hy'
-#   run_list = ['yv3v42ym', '7ba0jl9m', 'a60dnqcc', 'v6ln1x90', 'f5dmv6ow']
-#   project_name = 'best_runs'
-#   group_name = 'eval'
-#   run_best(sweep, run_list, project_name, group_name, num_runs=8)
