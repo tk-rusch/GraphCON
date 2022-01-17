@@ -8,6 +8,10 @@ import wandb
 
 import torch
 import numpy as np
+from ray import tune
+from functools import partial
+import os, time
+from ray.tune import CLIReporter
 
 from good_params_waveGNN import good_params_dict
 # from greed_params import default_params, not_sweep_args, greed_run_params
@@ -16,6 +20,7 @@ from data import get_dataset, set_train_val_test_split
 from GNN import GNN
 from GNN_early import GNNEarly
 from run_GNN import get_optimizer, test, train
+from utils import get_sem, mean_confidence_interval
 
 
 def main(opt, data_dir="../data"):
@@ -28,6 +33,8 @@ def main(opt, data_dir="../data"):
       # random prime 23 to make the splits 'more' random. Could remove
       dataset.data,
       num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
+
+  print("Running with parameters {}".format(opt))
 
   model = GNN(opt, dataset, device) if opt["no_early"] else GNNEarly(opt, dataset, device)
   # if torch.cuda.device_count() > 1:
@@ -70,9 +77,11 @@ def main(opt, data_dir="../data"):
     # tune.report(loss=loss, accuracy=val_acc, test_acc=test_acc, train_acc=train_acc, best_time=best_time,
     #             best_epoch=best_epoch,
     #             forward_nfe=model.fm.sum, backward_nfe=model.bm.sum)
-    wandb.log({"loss": loss,
+    res_dict = {"loss": loss,
                "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc, "best_time": best_time,
-               "best_epoch": best_epoch, "epoch_step": epoch})
+               "best_epoch": best_epoch, "epoch_step": epoch}
+    wandb.log(res_dict)
+    print(res_dict)
 
 
 def run_best(opt):
@@ -111,8 +120,42 @@ def run_best(opt):
     opt['wandb_track_grad_flow'] = False
     opt['wandb_watch_grad'] = False
 
+    reporter = CLIReporter(
+      metric_columns=["val_acc", "loss", "test_acc", "train_acc", "best_time", "best_epoch"])
+
+    result = tune.run(
+      partial(main, data_dir="../data"),
+      name=run,
+      resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
+      search_alg=None,
+      keep_checkpoints_num=3,
+      checkpoint_score_attr='val_acc',
+      config=opt,
+      num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
+      scheduler=None,
+      max_failures=1,  # early stop solver can't recover from failure as it doesn't own m2.
+      local_dir='../ray_tune',
+      progress_reporter=reporter,
+      raise_on_failed_trial=False)
+
+    df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
+    try:
+      df.to_csv('../ray_results/{}_{}.csv'.format(run, time.strftime("%Y%m%d-%H%M%S")))
+    except:
+      pass
+
+    print(df[['val_acc', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
+
+    test_accs = df['test_acc'].values
+    print("test accuracy {}".format(test_accs))
+    log = "mean test {:04f}, test std {:04f}, test sem {:04f}, test 95% conf {:04f}"
+    log_dic = {'mean_test': test_accs.mean(), 'test_std': np.std(test_accs), 'test_sem': get_sem(test_accs),
+               'test_95_conf': mean_confidence_interval(test_accs)}
+    wandb.log(log_dic)
+    print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs), mean_confidence_interval(test_accs)))
+
     # for i in range(num_runs):
-    main(opt)
+    # main(opt)
   wandb_run.finish()
 
 
