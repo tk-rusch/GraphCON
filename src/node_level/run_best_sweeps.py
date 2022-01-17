@@ -24,6 +24,7 @@ from utils import get_sem, mean_confidence_interval
 
 
 def main(opt, data_dir="../data"):
+  #todo see if I can initialise wandb runs inside of ray processes
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
 
@@ -80,7 +81,7 @@ def main(opt, data_dir="../data"):
     res_dict = {"loss": loss,
                "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc, "best_time": best_time,
                "best_epoch": best_epoch, "epoch_step": epoch}
-    wandb.log(res_dict)
+    # wandb.log(res_dict)
     print(res_dict)
 
 
