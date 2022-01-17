@@ -138,7 +138,7 @@ def run_best(opt):
       progress_reporter=reporter,
       raise_on_failed_trial=False)
 
-    df = result.dataframe(metric=opt['metric'], mode="max").sort_values(opt['metric'], ascending=False)
+    df = result.dataframe(metric=opt['metric'], mode="max").sort_values('test_acc', ascending=False)
     try:
       df.to_csv('../ray_results/{}_{}.csv'.format(run, time.strftime("%Y%m%d-%H%M%S")))
     except:
