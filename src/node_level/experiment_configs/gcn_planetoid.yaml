@@ -3,7 +3,7 @@ method: random
 parameters:
   method:
     distribution: categorical
-    values: [ 'dopri5', 'symplectic_euler', 'rk4' ]
+    values: [ 'dopri5', 'symplectic_euler', 'rk4', 'leapfrog']
   step_size:
     distribution: categorical
     values: [0.25, 0.5, 1]
