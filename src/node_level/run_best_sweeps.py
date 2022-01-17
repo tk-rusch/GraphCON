@@ -114,7 +114,7 @@ def run_best(opt):
     yaml_opt = temp_opt
     dataset = yaml_opt['dataset']
 
-    opt = {**opt, **good_params_dict[dataset], **yaml_opt}
+    opt = {**good_params_dict[dataset], **yaml_opt, **opt}
     opt['wandb'] = True
     opt['use_wandb_offline'] = False
     opt['wandb_best_run_id'] = run
@@ -139,7 +139,8 @@ def run_best(opt):
       progress_reporter=reporter,
       raise_on_failed_trial=False)
 
-    df = result.dataframe(metric=opt['metric'], mode="max").sort_values('test_acc', ascending=False)
+    print(f'results dataframe: {result}')
+    df = result.dataframe(metric='test_acc', mode="max").sort_values('test_acc', ascending=False)
     try:
       df.to_csv('../ray_results/{}_{}.csv'.format(run, time.strftime("%Y%m%d-%H%M%S")))
     except:
