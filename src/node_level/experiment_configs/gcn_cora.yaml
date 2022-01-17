@@ -1,0 +1,49 @@
+program: run_GNN.py
+method: random
+parameters:
+  method:
+    distribution: categorical
+    values: [ 'dopri5', 'symplectic_euler', 'rk4', 'leapfrog' ]
+  step_size:
+    distribution: categorical
+    values: [ 0.25, 0.5, 1 ]
+  function:
+    distribution: constant
+    value: gcn
+  epoch:
+    distribution: constant
+    value: 200
+  time:
+    distribution: uniform
+    min: 1
+    max: 15
+  dataset:
+    distribution: constant
+    value: 'Cora'
+  hidden_dim:
+    values: [ 32, 64 , 128 ]
+  input_dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  lr:
+    distribution: uniform
+    min: 0.01
+    max: 0.1
+  decay:
+    distribution: uniform
+    min: 0
+    max: 0.04
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --function
+  - function_gcn
