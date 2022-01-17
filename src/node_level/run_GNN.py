@@ -192,51 +192,61 @@ def main(cmd_opt):
   opt = wandb.config  # access all HPs through wandb.config, so logging matches execution!
 
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-  model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
-  print(opt)
-  if not opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed']:
-    dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
-                                            num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
-  # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
-  data = dataset.data.to(device)
-  parameters = [p for p in model.parameters() if p.requires_grad]
-  print_model_params(model)
-  optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
-  best_time = val_acc = test_acc = train_acc = best_epoch = 0
-  this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
-  for epoch in range(1, opt['epoch']):
-    start_time = time.time()
+  results = []
+  for rep in range(opt['num_splits']):
+    model = GNN(opt, dataset, device).to(device) if opt["no_early"] else GNNEarly(opt, dataset, device).to(device)
+    # print(opt)
+    if not opt['planetoid_split'] and opt['dataset'] in ['Cora', 'Citeseer', 'Pubmed']:
+      dataset.data = set_train_val_test_split(np.random.randint(0, 1000), dataset.data,
+                                              num_development=5000 if opt["dataset"] == "CoauthorCS" else 1500)
+    # todo for some reason the submodule parameters inside the attention module don't show up when running on GPU.
+    data = dataset.data.to(device)
+    parameters = [p for p in model.parameters() if p.requires_grad]
+    print_model_params(model)
+    optimizer = get_optimizer(opt['optimizer'], parameters, lr=opt['lr'], weight_decay=opt['decay'])
+    best_time = val_acc = test_acc = train_acc = best_epoch = 0
+    this_test = test_OGB if opt['dataset'] == 'ogbn-arxiv' else test
+    for epoch in range(1, opt['epoch']):
+      start_time = time.time()
 
-    tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
-    loss = train(model, optimizer, data)
+      tmp_train_acc, tmp_val_acc, tmp_test_acc = this_test(model, data, opt)
+      loss = train(model, optimizer, data)
 
-    if tmp_val_acc > val_acc:
-      best_epoch = epoch
-      train_acc = tmp_train_acc
-      val_acc = tmp_val_acc
-      test_acc = tmp_test_acc
-      best_time = opt['time']
-    if not opt['no_early'] and model.odeblock.test_integrator.solver.best_val > val_acc:
-      best_epoch = epoch
-      val_acc = model.odeblock.test_integrator.solver.best_val
-      test_acc = model.odeblock.test_integrator.solver.best_test
-      train_acc = model.odeblock.test_integrator.solver.best_train
-      best_time = model.odeblock.test_integrator.solver.best_time
+      if tmp_val_acc > val_acc:
+        best_epoch = epoch
+        train_acc = tmp_train_acc
+        val_acc = tmp_val_acc
+        test_acc = tmp_test_acc
+        best_time = opt['time']
+      if not opt['no_early'] and model.odeblock.test_integrator.solver.best_val > val_acc:
+        best_epoch = epoch
+        val_acc = model.odeblock.test_integrator.solver.best_val
+        test_acc = model.odeblock.test_integrator.solver.best_test
+        train_acc = model.odeblock.test_integrator.solver.best_train
+        best_time = model.odeblock.test_integrator.solver.best_time
 
-    if ((epoch) % opt['wandb_log_freq']) == 0:
-      wandb.log({"loss": loss,
-                 "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
-                 "epoch_step": epoch})  # , step=epoch) wandb: WARNING Step must only increase in log calls
+      if ((epoch) % opt['wandb_log_freq']) == 0 and rep == 0:
+        wandb.log({"loss": loss,
+                   "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
+                   "epoch_step": epoch})  # , step=epoch) wandb: WARNING Step must only increase in log calls
 
-    log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}, Best time: {:.4f}'
+      log = 'Epoch: {:03d}, Runtime {:03f}, Loss {:03f}, forward nfe {:d}, backward nfe {:d}, Train: {:.4f}, Val: {:.4f}, Test: {:.4f}, Best time: {:.4f}'
 
-    print(
-      log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc,
-                 best_time))
-  print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d} and best time {:03f}'.format(val_acc,
-                                                                                                       test_acc,
-                                                                                                       best_epoch,
-                                                                                                       best_time))
+      print(
+        log.format(epoch, time.time() - start_time, loss, model.fm.sum, model.bm.sum, train_acc, val_acc, test_acc,
+                   best_time))
+    print('best val accuracy {:03f} with test accuracy {:03f} at epoch {:d} and best time {:03f}'.format(val_acc,
+                                                                                                         test_acc,
+                                                                                                         best_epoch,
+                                                                                                         best_time))
+    if opt['num_splits'] > 1:
+      results.append([test_acc, val_acc, train_acc])
+
+  if opt['num_splits'] > 1:
+    test_acc_mean, val_acc_mean, train_acc_mean = np.mean(results, axis=0) * 100
+    test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
+    wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean, 'test_acc_std': test_acc_std}
+    wandb.log(wandb_results)
   wandb_run.finish()
   return train_acc, val_acc, test_acc
 
@@ -247,6 +257,7 @@ if __name__ == '__main__':
                       help='Whether to run with best params for cora. Overrides the choice of dataset')
 
   parser.add_argument('--id', type=int)
+  parser.add_argument('--num_splits', type=int, default=1, help='number of random splits to use')
   # data args
   parser.add_argument('--dataset', type=str, default='Cora',
                       help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS, ogbn-arxiv')

@@ -10,13 +10,16 @@ parameters:
   function:
     distribution: constant
     value: gcn
+  num_splits:
+    distribution: constant
+    value: 3
   epoch:
     distribution: constant
     value: 200
   time:
     distribution: uniform
-    min: 1
-    max: 15
+    min: 5
+    max: 20
   dataset:
     distribution: constant
     value: 'Cora'
