@@ -2,6 +2,7 @@ import torch
 from torch import nn
 from torch_geometric.utils import softmax
 import torch_sparse
+import torch.nn.functional as F
 from torch_geometric.utils.loop import add_remaining_self_loops
 from data import get_dataset
 from utils import MaxNFEException
@@ -43,25 +44,24 @@ class ODEFuncAtt(ODEFunc):
         dim=0)
     return ax
 
-  def forward(self, t, x):  # t is needed when called by the integrator
-
+  def forward(self, t, x_full):  # t is needed when called by the integrator
+    x = x_full[:, :self.opt['hidden_dim']]
+    y = x_full[:, self.opt['hidden_dim']:]
     if self.nfe > self.opt["max_nfe"]:
       raise MaxNFEException
-
     self.nfe += 1
-
-    attention, wx = self.multihead_att_layer(x, self.edge_index)
-    ax = self.multiply_attention(x, attention, wx)
+    attention, wy = self.multihead_att_layer(y, self.edge_index)
+    ay = self.multiply_attention(y, attention, wy)
     # todo would be nice if this was more efficient
 
     if not self.opt['no_alpha_sigmoid']:
       alpha = torch.sigmoid(self.alpha_train)
     else:
       alpha = self.alpha_train
-
-    f = alpha * (ax - x)
+    f = (ay - y - x)
     if self.opt['add_source']:
-      f = f + self.beta_train * self.x0
+      f = (1. - F.sigmoid(self.beta_train)) * f + F.sigmoid(self.beta_train) * self.x0[:, self.opt['hidden_dim']:]
+    f = torch.cat([f, (1. - F.sigmoid(self.beta_train2)) * alpha * x + F.sigmoid(self.beta_train2) * self.x0[:,:self.opt['hidden_dim']]],dim=1)
     return f
 
   def __repr__(self):
