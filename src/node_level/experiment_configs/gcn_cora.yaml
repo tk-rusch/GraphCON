@@ -3,10 +3,11 @@ method: random
 parameters:
   method:
     distribution: categorical
-    values: [ 'dopri5', 'symplectic_euler', 'leapfrog' ]
-  step_size:
-    distribution: categorical
-    values: [ 0.25, 0.5, 1 ]
+    values: [ 'dopri5' ]
+  tol_scale:
+    distribution: log_uniform
+    min: 0
+    max: 7
   function:
     distribution: constant
     value: gcn
@@ -15,10 +16,10 @@ parameters:
     value: 3
   epoch:
     distribution: constant
-    value: 200
+    value: 50
   time:
     distribution: uniform
-    min: 5
+    min: 1
     max: 20
   dataset:
     distribution: constant
@@ -35,12 +36,12 @@ parameters:
     max: 0.5
   lr:
     distribution: uniform
-    min: 0.01
-    max: 0.1
+    min: 0.001
+    max: 0.03
   decay:
     distribution: uniform
     min: 0
-    max: 0.04
+    max: 0.02
 command:
   - ${env}
   - python3
