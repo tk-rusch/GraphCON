@@ -79,62 +79,62 @@ def run_best(opt):
                            reinit=True, config=opt)
 
   wandb.define_metric("epoch_step")
-  for run in opt['runs']:
-    yaml_path = f"./wandb/sweep-{opt['sweep']}/config-{run}.yaml"
-    with open(yaml_path) as f:
-      yaml_opt = yaml.load(f, Loader=yaml.FullLoader)
-    temp_opt = {}
-    for k, v in yaml_opt.items():
-      if type(v) == dict:
-        temp_opt[k] = v['value']
-      else:
-        temp_opt[k] = v
-    yaml_opt = temp_opt
-    dataset = yaml_opt['dataset']
 
-    opt = {**good_params_dict[dataset], **yaml_opt, **opt}
-    opt['wandb'] = True
-    opt['use_wandb_offline'] = False
-    opt['wandb_best_run_id'] = run
-    opt['wandb_track_grad_flow'] = False
-    opt['wandb_watch_grad'] = False
+  yaml_path = f"./wandb/sweep-{opt['sweep']}/config-{opt['run']}.yaml"
+  with open(yaml_path) as f:
+    yaml_opt = yaml.load(f, Loader=yaml.FullLoader)
+  temp_opt = {}
+  for k, v in yaml_opt.items():
+    if type(v) == dict:
+      temp_opt[k] = v['value']
+    else:
+      temp_opt[k] = v
+  yaml_opt = temp_opt
+  dataset = yaml_opt['dataset']
 
-    reporter = CLIReporter(
-      metric_columns=["val_acc", "loss", "test_acc", "train_acc", "best_time", "best_epoch"])
+  opt = {**good_params_dict[dataset], **yaml_opt, **opt}
+  opt['wandb'] = True
+  opt['use_wandb_offline'] = False
+  opt['wandb_best_run_id'] = opt['run']
+  opt['wandb_track_grad_flow'] = False
+  opt['wandb_watch_grad'] = False
 
-    result = tune.run(
-      partial(main, data_dir="../data"),
-      name=run,
-      resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
-      search_alg=None,
-      keep_checkpoints_num=3,
-      checkpoint_score_attr='val_acc',
-      config=opt,
-      num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
-      scheduler=None,
-      max_failures=1,  # early stop solver can't recover from failure as it doesn't own m2.
-      local_dir='../ray_tune',
-      progress_reporter=reporter,
-      raise_on_failed_trial=False)
+  reporter = CLIReporter(
+    metric_columns=["val_acc", "loss", "test_acc", "train_acc", "best_time", "best_epoch"])
 
-    df = result.dataframe(metric='test_acc', mode="max").sort_values('test_acc', ascending=False)
-    try:
-      df.to_csv('../ray_results/{}_{}.csv'.format(run, time.strftime("%Y%m%d-%H%M%S")))
-    except:
-      pass
+  result = tune.run(
+    partial(main, data_dir="../data"),
+    name=run,
+    resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
+    search_alg=None,
+    keep_checkpoints_num=3,
+    checkpoint_score_attr='val_acc',
+    config=opt,
+    num_samples=opt['reps'] if opt["num_splits"] == 0 else opt["num_splits"] * opt["reps"],
+    scheduler=None,
+    max_failures=1,  # early stop solver can't recover from failure as it doesn't own m2.
+    local_dir='../ray_tune',
+    progress_reporter=reporter,
+    raise_on_failed_trial=False)
 
-    print(df[['val_acc', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
+  df = result.dataframe(metric='test_acc', mode="max").sort_values('test_acc', ascending=False)
+  try:
+    df.to_csv('../ray_results/{}_{}.csv'.format(run, time.strftime("%Y%m%d-%H%M%S")))
+  except:
+    pass
 
-    test_accs = df['test_acc'].values
-    val_accs = df['val_acc'].values
-    train_accs = df['train_acc'].values
-    print("test accuracy {}".format(test_accs))
-    log = "mean test {:04f}, test std {:04f}, test sem {:04f}, test 95% conf {:04f}"
-    log_dic = {'test_acc': test_accs.mean(), 'val_acc': val_accs.mean(), 'train_acc': train_accs.mean(),
-               'test_std': np.std(test_accs), 'test_sem': get_sem(test_accs),
-               'test_95_conf': mean_confidence_interval(test_accs)}
-    wandb.log(log_dic)
-    print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs), mean_confidence_interval(test_accs)))
+  print(df[['val_acc', 'test_acc', 'train_acc', 'best_time', 'best_epoch']])
+
+  test_accs = df['test_acc'].values
+  val_accs = df['val_acc'].values
+  train_accs = df['train_acc'].values
+  print("test accuracy {}".format(test_accs))
+  log = "mean test {:04f}, test std {:04f}, test sem {:04f}, test 95% conf {:04f}"
+  log_dic = {'test_acc': test_accs.mean(), 'val_acc': val_accs.mean(), 'train_acc': train_accs.mean(),
+             'test_std': np.std(test_accs), 'test_sem': get_sem(test_accs),
+             'test_95_conf': mean_confidence_interval(test_accs)}
+  wandb.log(log_dic)
+  print(log.format(test_accs.mean(), np.std(test_accs), get_sem(test_accs), mean_confidence_interval(test_accs)))
 
   wandb_run.finish()
 
@@ -143,7 +143,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--epoch', type=int, default=10, help='Number of training epochs per iteration.')
   parser.add_argument('--sweep', type=str, default=None, help='sweep folder to read', required=True)
-  parser.add_argument('--runs', type=str, nargs='+', default=None, help='the run IDs', required=True)
+  parser.add_argument('--run', type=str, default=None, help='the run IDs', required=True)
   parser.add_argument('--reps', type=int, default=1, help='the number of random weight initialisations to use')
   parser.add_argument('--name', type=str, default=None)
   parser.add_argument('--gpus', type=float, default=0, help='number of gpus per trial. Can be fractional')
