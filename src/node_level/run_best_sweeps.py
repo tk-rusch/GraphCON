@@ -104,7 +104,7 @@ def run_best(opt):
 
   result = tune.run(
     partial(main, data_dir="../data"),
-    name=run,
+    name=opt['run'],
     resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
     search_alg=None,
     keep_checkpoints_num=3,
@@ -119,7 +119,7 @@ def run_best(opt):
 
   df = result.dataframe(metric='test_acc', mode="max").sort_values('test_acc', ascending=False)
   try:
-    df.to_csv('../ray_results/{}_{}.csv'.format(run, time.strftime("%Y%m%d-%H%M%S")))
+    df.to_csv('../ray_results/{}_{}.csv'.format(opt['run'], time.strftime("%Y%m%d-%H%M%S")))
   except:
     pass
 
