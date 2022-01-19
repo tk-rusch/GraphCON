@@ -6,7 +6,7 @@ parameters:
     values: [ 'dopri5', 'symplectic_euler', 'rk4', 'leapfrog']
   tol_scale:
     distribution: log_uniform
-    min: 0
+    min: -1
     max: 7
   function:
     distribution: constant
