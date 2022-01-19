@@ -19,9 +19,9 @@ from GNN import GNN
 from GNN_early import GNNEarly
 from run_GNN import get_optimizer, test, train
 from utils import get_sem, mean_confidence_interval
+from definitions import ROOT_DIR
 
-
-def main(opt, data_dir="../data"):
+def main(opt, data_dir):
   # todo see if I can initialise wandb runs inside of ray processes
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   dataset = get_dataset(opt, data_dir, opt['not_lcc'])
@@ -103,7 +103,7 @@ def run_best(opt):
     metric_columns=["val_acc", "loss", "test_acc", "train_acc", "best_time", "best_epoch"])
 
   result = tune.run(
-    partial(main, data_dir="../data"),
+    partial(main, data_dir="ROOT_DIR/data"),
     name=opt['run'],
     resources_per_trial={"cpu": opt['cpus'], "gpu": opt['gpus']},
     search_alg=None,
