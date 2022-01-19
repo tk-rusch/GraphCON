@@ -19,7 +19,7 @@ parameters:
     value: 3
   epoch:
     distribution: constant
-    value: 50
+    value: 70
   time:
     distribution: uniform
     min: 1
@@ -40,7 +40,7 @@ parameters:
   lr:
     distribution: uniform
     min: 0.001
-    max: 0.03
+    max: 0.05
   decay:
     distribution: uniform
     min: 0
