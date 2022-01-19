@@ -33,10 +33,9 @@ parameters:
   hidden_dim:
     distribution: categorical
     values: [ 32, 64 , 128 ]
-  add_source:
-    values:
-      - True
-      - False
+  attention_dim:
+    distribution: categorical
+    values: [ 32, 64 , 128 ]
   input_dropout:
     distribution: uniform
     min: 0.0
@@ -61,3 +60,4 @@ command:
   - --wandb
   - --wandb_sweep
   - --adjoint
+  - --add_source
