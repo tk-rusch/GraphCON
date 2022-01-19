@@ -11,6 +11,9 @@ parameters:
   function:
     distribution: constant
     value: GAT
+  block:
+    distribution: constant
+    value: constant
   num_splits:
     distribution: constant
     value: 3
