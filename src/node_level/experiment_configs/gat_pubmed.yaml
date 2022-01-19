@@ -39,7 +39,7 @@ parameters:
     max: 0.5
   lr:
     distribution: uniform
-    min: 0.001
+    min: 0.005
     max: 0.05
   decay:
     distribution: uniform
