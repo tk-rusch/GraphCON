@@ -17,6 +17,9 @@ parameters:
   num_splits:
     distribution: constant
     value: 3
+  heads:
+    distribution: categorical
+    values: [ 1, 2 ]
   epoch:
     distribution: constant
     value: 70
