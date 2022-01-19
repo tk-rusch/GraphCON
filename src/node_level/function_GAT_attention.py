@@ -60,8 +60,8 @@ class ODEFuncAtt(ODEFunc):
       alpha = self.alpha_train
     f = (ay - y - x)
     if self.opt['add_source']:
-      f = (1. - F.sigmoid(self.beta_train)) * f + F.sigmoid(self.beta_train) * self.x0[:, self.opt['hidden_dim']:]
-    f = torch.cat([f, (1. - F.sigmoid(self.beta_train2)) * alpha * x + F.sigmoid(self.beta_train2) * self.x0[:,:self.opt['hidden_dim']]],dim=1)
+      f = (1. - torch.sigmoid(self.beta_train)) * f + torch.sigmoid(self.beta_train) * self.x0[:, self.opt['hidden_dim']:]
+    f = torch.cat([f, (1. - torch.sigmoid(self.beta_train2)) * alpha * x + torch.sigmoid(self.beta_train2) * self.x0[:,:self.opt['hidden_dim']]],dim=1)
     return f
 
   def __repr__(self):
