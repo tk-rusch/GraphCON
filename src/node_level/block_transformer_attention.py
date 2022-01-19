@@ -20,6 +20,8 @@ class AttODEblock(ODEblock):
 
     if(opt['method']=='symplectic_euler' or opt['method']=='leapfrog'):
       from odeint_geometric import odeint
+    elif opt['adjoint']:
+      from torchdiffeq import odeint_adjoint as odeint
     else:
       from torchdiffeq import odeint
     self.train_integrator = odeint
