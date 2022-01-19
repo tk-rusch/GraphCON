@@ -3,7 +3,7 @@ method: random
 parameters:
   method:
     distribution: categorical
-    values: [ 'dopri5', 'symplectic_euler', 'rk4', 'leapfrog']
+    values: [ 'leapfrog' ]
   tol_scale:
     distribution: log_uniform
     min: -1
@@ -25,13 +25,17 @@ parameters:
     value: 70
   time:
     distribution: uniform
-    min: 1
-    max: 20
+    min: 3
+    max: 25
   dataset:
     distribution: constant
     value: 'Pubmed'
   hidden_dim:
+    distribution: categorical
     values: [ 32, 64 , 128 ]
+  add_source:
+    distribution: categorical
+    values: [True, False]
   input_dropout:
     distribution: uniform
     min: 0.0
@@ -42,8 +46,8 @@ parameters:
     max: 0.5
   lr:
     distribution: uniform
-    min: 0.005
-    max: 0.05
+    min: 0.01
+    max: 0.07
   decay:
     distribution: uniform
     min: 0
