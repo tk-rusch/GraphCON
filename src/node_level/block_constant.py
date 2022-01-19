@@ -22,7 +22,9 @@ class ConstantODEblock(ODEblock):
     self.odefunc.edge_weight = edge_weight.to(device)
     self.reg_odefunc.odefunc.edge_index, self.reg_odefunc.odefunc.edge_weight = self.odefunc.edge_index, self.odefunc.edge_weight
 
-    if opt['adjoint']:
+    if (opt['method'] == 'symplectic_euler' or opt['method'] == 'leapfrog'):
+      from odeint_geometric import odeint
+    elif opt['adjoint']:
       from torchdiffeq import odeint_adjoint as odeint
     else:
       from torchdiffeq import odeint
