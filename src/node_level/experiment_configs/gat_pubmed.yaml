@@ -34,8 +34,9 @@ parameters:
     distribution: categorical
     values: [ 32, 64 , 128 ]
   add_source:
-    distribution: categorical
-    values: [True, False]
+    values:
+      - True
+      - False
   input_dropout:
     distribution: uniform
     min: 0.0
