@@ -73,8 +73,6 @@ def main(opt, data_dir):
 
 
 def run_best(opt):
-    opt['wandb_entity'] = 'bchamberlain'
-    opt['wandb_project'] = 'waveGNN-src_node_level'
     opt['wandb_group'] = None
     if 'wandb_run_name' in opt.keys():
         wandb_run = wandb.init(entity=opt['wandb_entity'], project=opt['wandb_project'], group=opt['wandb_group'],
@@ -162,6 +160,9 @@ if __name__ == '__main__':
                         help="Whether or not to use early stopping of the ODE integrator when testing.")
 
     parser.add_argument('--earlystopxT', type=float, default=3, help='multiplier for T used to evaluate best model')
+    parser.add_argument('--wandb_entity', default="graphcon", type=str,
+                        help="jrowbottomwnb, ger__man")  # not used as default set in web browser settings
+    parser.add_argument('--wandb_project', default="gat_pubmed", type=str)
 
     args = parser.parse_args()
 
