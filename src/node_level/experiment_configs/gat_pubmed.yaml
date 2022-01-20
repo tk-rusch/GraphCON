@@ -61,3 +61,7 @@ command:
   - --wandb_sweep
   - --adjoint
   - --add_source
+entity:
+  graphcon
+project:
+  gat_pubmed
