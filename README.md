@@ -1,5 +1,5 @@
-# waveGNN
-Wave Graph Neural Network
+# GraphCON
+Graph-Coupled Oscillator Networks
 
 ### Requirements
 Dependencies (with python >= 3.7):
