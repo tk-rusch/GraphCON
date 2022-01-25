@@ -1,0 +1,63 @@
+program: run_GNN.py
+method: bayes
+parameters:
+  method:
+    distribution: categorical
+    values: [ 'leapfrog' ]
+  function:
+    distribution: constant
+    value: GAT
+  block:
+    distribution: constant
+    value: constant
+  num_splits:
+    distribution: constant
+    value: 3
+  heads:
+    distribution: categorical
+    values: [ 2 ]
+  epoch:
+    distribution: constant
+    value: 100
+  time:
+    distribution: uniform
+    min: 2
+    max: 25
+  dataset:
+    distribution: constant
+    value: 'Pubmed'
+  hidden_dim:
+    distribution: categorical
+    values: [ 32, 64 ]
+  attention_dim:
+    distribution: categorical
+    values: [ 64 , 128 ]
+  input_dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  dropout:
+    distribution: uniform
+    min: 0.0
+    max: 0.5
+  lr:
+    distribution: uniform
+    min: 0.01
+    max: 0.07
+  decay:
+    distribution: uniform
+    min: 0
+    max: 0.025
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+  - --wandb
+  - --wandb_sweep
+  - --adjoint
+  - --add_source
+entity:
+  graphcon
+project:
+  gat_pubmed
