@@ -58,7 +58,7 @@ class GraphCON_GCN(nn.Module):
         return X
 
 class GraphCON_GAT(nn.Module):
-    def __init__(self, nfeat, nhid, nclass, nlayers, dropout, dt=1., alpha=1., gamma=1., res_version=1, nheads=4):
+    def __init__(self, nfeat, nhid, nclass, nlayers, dropout, dt=1., alpha=1., gamma=1., nheads=4):
         super(GraphCON_GAT, self).__init__()
         self.alpha = alpha
         self.alpha = gamma

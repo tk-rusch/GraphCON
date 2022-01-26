@@ -14,9 +14,14 @@ def train_GNN(opt,split):
     bad_counter = 0
     best_test_acc = 0
 
-    model = GraphCON_GCN(nfeat=data.num_features,nhid=opt['nhid'],nclass=5,
-                         dropout=opt['drop'],nlayers=opt['nlayers'],dt=1.,
-                         alpha=opt['alpha'],gamma=opt['gamma'],res_version=opt['res_version']).to(opt['device'])
+    if opt['model'] is 'GraphCON_GCN':
+        model = GraphCON_GCN(nfeat=data.num_features,nhid=opt['nhid'],nclass=5,
+                             dropout=opt['drop'],nlayers=opt['nlayers'],dt=1.,
+                             alpha=opt['alpha'],gamma=opt['gamma'],res_version=opt['res_version']).to(opt['device'])
+    elif opt['model'] is 'GraphCON_GAT':
+        model = GraphCON_GAT(nfeat=data.num_features, nhid=opt['nhid'], nclass=5,
+                             dropout=opt['drop'], nlayers=opt['nlayers'], dt=1.,
+                             alpha=opt['alpha'], gamma=opt['gamma'],nheads=opt['nheads']).to(opt['device'])
 
     optimizer = optim.Adam(model.parameters(),lr=opt['lr'],weight_decay=opt['weight_decay'])
     lf = nn.CrossEntropyLoss()
@@ -71,6 +76,8 @@ if __name__ == '__main__':
                         help='alpha parameter of graphCON')
     parser.add_argument('--gamma', type=float, default=1.,
                         help='gamma parameter of graphCON')
+    parser.add_argument('--nheads', type=int, default=4,
+                        help='number of attention heads for GraphCON-GAT')
     parser.add_argument('--epochs', type=int, default=1500,
                         help='max epochs')
     parser.add_argument('--patience', type=int, default=100,
