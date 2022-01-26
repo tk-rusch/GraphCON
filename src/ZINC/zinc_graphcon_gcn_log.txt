@@ -1,0 +1,4 @@
+validation loss: 4.367251708984375
+validation loss: 4.012367034912109
+validation loss: 1.9850104522705079
+validation loss: 1.4549850311279298
