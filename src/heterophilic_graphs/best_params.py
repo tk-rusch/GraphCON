@@ -1,0 +1,4 @@
+best_params_dict = {'cornell': {'model': 'GraphCON_GCN', 'lr': 0.00721, 'nhid': 256, 'alpha': 0, 'gamma': 0, 'nlayers': 1, 'dropout': 0.15, 'weight_decay': 0.0012708787092020595, 'res_version': 1},
+                    'wisconsin': {'model': 'GraphCON_GCN', 'lr': 0.00356, 'nhid': 64, 'alpha': 0, 'gamma': 0, 'nlayers': 2, 'dropout': 0.23, 'weight_decay': 0.008126619200091946, 'res_version': 2},
+                    'texas': {'model': 'GraphCON_GCN', 'lr': 0.00155, 'nhid': 256, 'alpha': 0, 'gamma': 0, 'nlayers': 2, 'dropout': 0.68, 'weight_decay': 0.0008549327066268375, 'res_version': 2}
+                    }
