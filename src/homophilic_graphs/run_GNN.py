@@ -167,7 +167,7 @@ def main(cmd_opt):
   opt = {**cmd_opt, **best_opt}
   merge_cmd_args(cmd_opt, opt)
 
-  dataset = get_dataset(opt, '../data', opt['not_lcc'])
+  dataset = get_dataset(opt, '../../data', opt['not_lcc'])
 
   if opt['wandb']:
     if opt['use_wandb_offline']:

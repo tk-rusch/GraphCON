@@ -15,7 +15,7 @@ import torch_geometric.transforms as T
 from torch_geometric.utils import to_undirected
 from heterophilic import WebKB, WikipediaNetwork, Actor
 
-DATA_PATH = '../data'
+DATA_PATH = '../../data'
 
 
 def rewire(data, opt):
