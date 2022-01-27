@@ -226,7 +226,7 @@ def main(cmd_opt):
                 train_acc = model.odeblock.test_integrator.solver.best_train
                 best_time = model.odeblock.test_integrator.solver.best_time
 
-            if ((epoch) % opt['wandb_log_freq']) == 0 and rep == 0:
+            if opt['wandb'] and ((epoch) % opt['wandb_log_freq']) == 0 and rep == 0:
                 wandb.log({"loss": loss,
                            "train_acc": train_acc, "val_acc": val_acc, "test_acc": test_acc,
                            "epoch_step": epoch})  # , step=epoch) wandb: WARNING Step must only increase in log calls
@@ -247,10 +247,12 @@ def main(cmd_opt):
     if opt['num_splits'] > 1:
         test_acc_mean, val_acc_mean, train_acc_mean = np.mean(results, axis=0) * 100
         test_acc_std = np.sqrt(np.var(results, axis=0)[0]) * 100
-        wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
-                         'test_acc_std': test_acc_std}
-        wandb.log(wandb_results)
-    wandb.finish()
+        if opt['wandb']:
+            wandb_results = {'test_mean': test_acc_mean, 'val_mean': val_acc_mean, 'train_mean': train_acc_mean,
+                             'test_acc_std': test_acc_std}
+            wandb.log(wandb_results)
+    if opt['wandb']:
+        wandb.finish()
     return train_acc, val_acc, test_acc
 
 
