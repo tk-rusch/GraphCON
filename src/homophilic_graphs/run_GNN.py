@@ -265,7 +265,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_splits', type=int, default=1, help='number of random splits to use')
     # data args
     parser.add_argument('--dataset', type=str, default='Cora',
-                        help='Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS, ogbn-arxiv')
+                        help='Cora, Citeseer, Pubmed')
     parser.add_argument('--data_norm', type=str, default='rw',
                         help='rw for random walk, gcn for symmetric gcn norm')
     parser.add_argument('--self_loop_weight', type=float, help='Weight of self-loops.')
