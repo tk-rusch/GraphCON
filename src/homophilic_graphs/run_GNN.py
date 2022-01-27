@@ -373,8 +373,8 @@ if __name__ == '__main__':
     parser.add_argument('--wandb_watch_grad', action='store_true', help='allows gradient tracking in train function')
     parser.add_argument('--wandb_track_grad_flow', action='store_true')
 
-    parser.add_argument('--wandb_entity', default="graph_neural_diffusion", type=str)  # not used as default set in web browser settings
-    parser.add_argument('--wandb_project', default="greed", type=str)
+    parser.add_argument('--wandb_entity', default="graphcon", type=str)  # not used as default set in web browser settings
+    parser.add_argument('--wandb_project', default="graphcon", type=str)
     parser.add_argument('--wandb_group', default="testing", type=str, help="testing,tuning,eval")
     parser.add_argument('--wandb_run_name', default=None, type=str)
     parser.add_argument('--wandb_output_dir', default='./wandb_output',
