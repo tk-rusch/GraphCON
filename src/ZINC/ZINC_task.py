@@ -111,6 +111,6 @@ for epoch in range(args.epochs):
             break
 
 f = open('zinc_graphcon_gcn_log.txt', 'a')
-f.write('final test loss: ' + str(round(best_test_loss, 2)) + '\n')
+f.write('final test loss: ' + str(best_test_loss) + '\n')
 f.close()
-print('final test loss: ',val_loss)
+print('final test loss: ',best_test_loss)
