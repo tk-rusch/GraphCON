@@ -9,7 +9,7 @@ from GNN_early import GNNEarly
 import time
 from data import get_dataset, set_train_val_test_split
 from ogb.nodeproppred import Evaluator
-from good_params_waveGNN import good_params_dict
+from good_params_graphCON import good_params_dict
 import wandb
 
 
