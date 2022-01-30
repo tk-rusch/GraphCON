@@ -34,7 +34,7 @@ pip install torch-geometric
 pip install wandb
 ```
 
-###Usage
+### Usage
 GraphCON is a general framework for "stacking" many GNN layers (aka message passing mechanisms)
 in order to obtain a deep GNN which overcomes the oversmoothing problem. <br />
 
