@@ -2,6 +2,10 @@
 This repository contains the implementation to reproduce the numerical experiments 
 of the preprint **Graph-Coupled Oscillator Networks**
 
+<p align="center">
+<img align="middle" src="./imgs/graphCON_figure.pdf" width="500" />
+</p>
+
 ### Requirements
 Main dependencies (with python >= 3.7):<br />
 torch==1.9.0<br />
