@@ -3,7 +3,7 @@ This repository contains the implementation to reproduce the numerical experimen
 of the preprint **Graph-Coupled Oscillator Networks**
 
 <p align="center">
-<img align="middle" src="./imgs/graphCON_figure.png" width="500" />
+<img align="middle" src="./imgs/graphCON_figure.png" width="400" />
 </p>
 
 ### Requirements
