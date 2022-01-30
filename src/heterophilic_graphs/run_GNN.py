@@ -14,11 +14,11 @@ def train_GNN(opt,split):
     bad_counter = 0
     best_test_acc = 0
 
-    if opt['model'] is 'GraphCON_GCN':
+    if opt['model'] == 'GraphCON_GCN':
         model = GraphCON_GCN(nfeat=data.num_features,nhid=opt['nhid'],nclass=5,
                              dropout=opt['drop'],nlayers=opt['nlayers'],dt=1.,
                              alpha=opt['alpha'],gamma=opt['gamma'],res_version=opt['res_version']).to(opt['device'])
-    elif opt['model'] is 'GraphCON_GAT':
+    elif opt['model'] == 'GraphCON_GAT':
         model = GraphCON_GAT(nfeat=data.num_features, nhid=opt['nhid'], nclass=5,
                              dropout=opt['drop'], nlayers=opt['nlayers'], dt=1.,
                              alpha=opt['alpha'], gamma=opt['gamma'],nheads=opt['nheads']).to(opt['device'])
@@ -64,7 +64,7 @@ def train_GNN(opt,split):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='training parameters')
-    parser.add_argument('--dataset', type=str, default='cornell',
+    parser.add_argument('--dataset', type=str, default='texas',
                         help='cornell, wisconsin, texas')
     parser.add_argument('--model', type=str, default='GraphCON_GCN',
                         help='GraphCON_GCN, GraphCON_GAT')
