@@ -6,11 +6,13 @@ parameters:
   step_size:
     value: 1
   function:
-    value: function_gcn
+    value: gcn
   epoch:
     value: 100
   hidden_dim:
     value: 64
+  num_splits:
+    value: 2
   dataset:
     values: [ 'Cora', 'Citeseer' ]
   time:
@@ -38,5 +40,3 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
-  - --function
-  - function_gcn
