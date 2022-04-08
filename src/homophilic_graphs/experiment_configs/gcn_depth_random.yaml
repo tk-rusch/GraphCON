@@ -40,3 +40,5 @@ command:
   - ${args}
   - --wandb
   - --wandb_sweep
+entity: graphcon
+project: gcn_depth_random
