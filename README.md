@@ -1,6 +1,7 @@
-# GraphCON
+<h1 align='center'> Graph-Coupled Oscillator Networks [ICML 2022] </h1>
+
 This repository contains the implementation to reproduce the numerical experiments 
-of the preprint **Graph-Coupled Oscillator Networks**
+of the **ICML 2022** paper [Graph-Coupled Oscillator Networks](https://arxiv.org/abs/2202.02296)
 
 <p align="center">
 <img align="middle" src="./imgs/graphCON_figure.png" width="400" />
@@ -99,3 +100,15 @@ class deep_GNN(nn.Module):
 ```
 This is just an easy example to demonstrate the **simple usage of GraphCON**. 
 You can find the full GraphCOON models we used in our experiments in the `src` directory.
+
+# Citation
+If you found our work useful in your research, please cite our paper at:
+```bibtex
+@article{graphcon,
+  title={Graph-Coupled Oscillator Networks},
+  author={Rusch, T Konstantin and Chamberlain, Benjamin P and Rowbottom, James and Mishra, Siddhartha and Bronstein, Michael M},
+  journal={arXiv preprint arXiv:2202.02296},
+  year={2022}
+}
+```
+(Also consider starring the project on GitHub.)
