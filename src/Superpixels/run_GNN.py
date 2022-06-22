@@ -20,11 +20,11 @@ def train_GNN(opt):
 
     epochs = opt['epochs']
 
-    if opt['model'] is 'GraphCON_GCN':
+    if opt['model'] == 'GraphCON_GCN':
         model = GraphCON_GCN(nfeat=train_dataset.data.num_features+2,nhid=opt['nhid'],nclass=10,
                              dropout=opt['drop'],nlayers=opt['nlayers'],dt=1.,
                              alpha=opt['alpha'],gamma=opt['gamma']).to(opt['device'])
-    elif opt['model'] is 'GraphCON_GAT':
+    elif opt['model'] == 'GraphCON_GAT':
         model = GraphCON_GAT(nfeat=train_dataset.data.num_features+2, nhid=opt['nhid'], nclass=10,
                              dropout=opt['drop'], nlayers=opt['nlayers'], dt=1.,
                              alpha=opt['alpha'], gamma=opt['gamma'],nheads=opt['nheads']).to(opt['device'])
