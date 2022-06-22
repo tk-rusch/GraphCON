@@ -36,17 +36,17 @@ pip install wandb
 ```
 
 ### Run the experiments
-To run each experiment, navigate to `src/exp_dir` 
+To run each experiment, navigate into `src/exp_dir` 
 (change `exp_dir` to the name of the corresponding experiment directory).
 There, simply do
 ```
 python run_GNN.py --kwargs
 ```
-where kwargs are specidifed in each indiviual `run_GNN.py` file.
+where kwargs are specified in each individual `run_GNN.py` file.
 
 ### Dataset and preprocessing
 All data gets downloaded and preprocessed automatically and stored in `./data` directory 
-(which gets automatically created, the first time one of the experiments is run).
+(which gets automatically created the first time one of the experiments is run).
 
 ### Usage
 GraphCON is a general framework for "stacking" many GNN layers (aka message passing mechanisms)
