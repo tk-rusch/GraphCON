@@ -1,4 +1,4 @@
-<h1 align='center'> Graph-Coupled Oscillator Networks [ICML 2022] </h1>
+<h1 align='center'> Graph-Coupled Oscillator Networks </h1>
 
 This repository contains the implementation to reproduce the numerical experiments 
 of the **ICML 2022** paper [Graph-Coupled Oscillator Networks](https://arxiv.org/abs/2202.02296)
